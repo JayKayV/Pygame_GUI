@@ -2,6 +2,7 @@ import pygame
 import pygame.freetype
 
 from types import FunctionType
+from varname import nameof
 from pygame_gui_base import *
 pygame.init()
 
@@ -69,16 +70,16 @@ class TEXT(GUI_OBJ):
         self.font = font
 
         self.hover = False
-        self.img = font.render(text, fcolor)[0]
+        self.text_img = font.render(text, fcolor)[0]
 
         self.hover_func = None
         self.hover_img = None
+        self.blit_once = False
 
     def set_hover(self, ishover, hover_img = DEFAULT_HFCOLOR):
         self.hover = ishover
         if isinstance(hover_img, tuple) and len(hover_img) == 3:
             self.hover_fcolor = hover_img
-        #todo: fix bug here
         elif isinstance(hover_img, pygame.Surface):
             self.hover_img = hover_img
         elif isinstance(hover_img, FunctionType):
@@ -90,20 +91,24 @@ class TEXT(GUI_OBJ):
         self.hover_func = func
 
     def blit(self, surf):
-        self.rect = surf.blit(self.img, self.pos)
+        if not self.blit_once:
+            self.rect = surf.blit(self.text_img, self.pos)
+            self.blit_once = True
         if self.hover:
             pos = pygame.mouse.get_pos()
 
             if self.rect.collidepoint(pos):
                 if self.hover_func:
-                    self.img = self.hover_func(self.img)
-                elif self.hover_img :
-                    self.img = self.hover_img
+                    self.text_img = self.hover_func(self.img)
+                elif self.hover_img:
+                    self.text_img = self.hover_img
                 else:
-                    self.img = self.font.render(self.text, self.hover_fcolor)[0]
+                    self.text_img = self.font.render(self.text, self.hover_fcolor)[0]
+
             else:
-                self.img = self.font.render(self.text, self.fcolor)[0]
-        self.rect = surf.blit(self.img, self.pos)
+                self.text_img = self.font.render(self.text, self.fcolor)[0]
+
+        surf.blit(self.text_img, self.rect)
 
 class TEXT_BOX(GUI_OBJ):
     def __init__(self, text, size, pos=(50, 50), ppos=(0, 0),
@@ -120,6 +125,7 @@ class TEXT_BOX(GUI_OBJ):
         if not isinstance(self.b_img, pygame.Surface):
             self.surf.fill(self.b_img)
         else:
+            self.b_img = pygame.transform.smoothscale(self.b_img, size)
             self.surf = self.b_img
         self.ppos = ppos
         self.surf.blit(self.text_img, ppos)
@@ -128,6 +134,7 @@ class TEXT_BOX(GUI_OBJ):
         self.hover_func = None
         self.hover_img = None
         self.border = False
+        self.blit_once = False
 
     def set_hover(self, ishover, hover_img=DEFAULT_HBCOLOR):
         self.hover = ishover
@@ -149,7 +156,10 @@ class TEXT_BOX(GUI_OBJ):
             self.borderThickness = borderThickness
 
     def blit(self, surf):
-        self.rect = surf.blit(self.surf, self.pos)
+        if not self.blit_once:
+            self.surf.blit(self.text_img, self.ppos)
+            self.rect = surf.blit(self.surf, self.pos)
+            self.blit_once = True
         if self.hover:
             pos = pygame.mouse.get_pos()
 
@@ -168,7 +178,7 @@ class TEXT_BOX(GUI_OBJ):
                     self.surf.blit(self.b_img, (0, 0))
 
             self.surf.blit(self.text_img, self.ppos)
-        self.rect = surf.blit(self.surf, self.pos)
+        surf.blit(self.surf, self.rect)
 
         if self.border:
             point1 = (self.rect.x, self.rect.y)
@@ -227,7 +237,7 @@ class SLIDER(GUI_OBJ):
         self.slideColor = slideColor
         self.slideThickness = slideThickness
 
-        self.slider = self.set_baseslider((14, 21), 2, DEFAULT_SLIDERCOLOR)
+        self.slider = self.set_baseslider((10, 21), 2, DEFAULT_SLIDERCOLOR)
 
     def set_slide(self, surf_img):
         self.slider = surf_img
